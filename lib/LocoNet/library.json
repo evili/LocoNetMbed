@@ -1,0 +1,29 @@
+{
+    "name": "LocoNet",
+    "version": "0.0.1",
+    "category": "communication",
+    "authors": [
+        {
+            "name": "Alex Shepherd"
+        },
+        {
+            "name": "John Plocher"
+        },
+        {
+            "name": "Damian Philipp"
+        },
+        {
+            "name": "Tom Knox"
+        },
+        {
+            "name": "Hans Tanner"
+        },
+        {
+            "name": "Evili del Rio",
+            "email": "evili.del.rio@gmail.com",
+            "mantainer": true
+        }
+    ],
+    "frameworks": "mbed",
+    "license": "LGPL"
+}
