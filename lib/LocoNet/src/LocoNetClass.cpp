@@ -1,4 +1,5 @@
 #include "LocoNetClass.h"
+#include "ln_sw_uart.h"
 
 const char * LoconetStatusStrings[] = {
         "CD Backoff",
@@ -10,16 +11,27 @@ const char * LoconetStatusStrings[] = {
         "Retry Error"
 };
 
-LocoNetClass::LocoNetClass() {
-  
-}
 LocoNetClass::LocoNetClass()
 {
 }
 
 void LocoNetClass::init(void)
 {
-  init(LOCONET_TX_DEFAULT);
+  init(LOCONET_TX_DEFAULT_PIN);
+}
+
+
+void LocoNetClass::init(PinName txPin)
+{
+  init(txPin, LOCONET_RX_DEFAULT_PIN);
+}
+
+void LocoNetClass::init(PinName txPin, PinName rxPin)
+{
+  initLnBuf(&LnBuffer) ;
+  setTxPin(txPin);
+  setRxPin(rxPin);
+  initLocoNetHardware(&LnBuffer, );
 }
 
 const char* LocoNetClass::getStatusStr(LN_STATUS Status)
@@ -30,35 +42,18 @@ const char* LocoNetClass::getStatusStr(LN_STATUS Status)
   return "Invalid Status";
 }
 
-void LocoNetClass::init(uint8_t txPin)
-{
-  initLnBuf(&LnBuffer) ;
-  setTxPin(txPin);
-  initLocoNetHardware(&LnBuffer);
+
+void LocoNetClass::setTxPin(PinName txPin) {
+  _txPin = new DigitalOut(txPin);
 }
 
-
-
-void LocoNetClass::setTxPin(uint8_t txPin) {
-    pinMode(txPin, OUTPUT);
-  
-        // Not figure out which Port bit is the Tx Bit from the Arduino pin number
-  uint8_t bitMask = digitalPinToBitMask(txPin);
-  uint8_t bitMaskTest = 0x01;
-  uint8_t bitNum = 0;
-  
-  uint8_t port = digitalPinToPort(txPin);
-  volatile uint8_t *out = portOutputRegister(port);
-  
-  while(bitMask != bitMaskTest)
-        bitMaskTest = 1 << ++bitNum;
-        
-  setTxPortAndPin(out, bitNum);
-
+void LocoNetClass::setRxPin(PinName rxPin) {
+  _rxPin = new Interruptin(rxPin);
 }
+
 
 // Check to see if any messages is ready to receive()?
-boolean LocoNetClass::available(void)
+bool LocoNetClass::available(void)
 {
   return lnPacketReady(&LnBuffer);
 }
@@ -442,8 +437,8 @@ LN_STATUS LocoNetClass::reportSwitch( uint16_t Address )
 
 LN_STATUS LocoNetClass::reportSensor( uint16_t Address, uint8_t State )
 {
-        byte AddrH = ( (--Address >> 8) & 0x0F ) | OPC_INPUT_REP_CB ;
-        byte AddrL = ( Address >> 1 ) & 0x7F ;
+        uint8_t AddrH = ( (--Address >> 8) & 0x0F ) | OPC_INPUT_REP_CB ;
+        uint8_t AddrL = ( Address >> 1 ) & 0x7F ;
         if( Address % 2)
                 AddrH |= OPC_INPUT_REP_SW ;
 
@@ -453,4 +448,5 @@ LN_STATUS LocoNetClass::reportSensor( uint16_t Address, uint8_t State )
   return send( OPC_INPUT_REP, AddrL, AddrH ) ;
 }
 
-// LocoNetClass LocoNet = LocoNetClass();
+LocoNetClass LocoNet = LocoNetClass();
+

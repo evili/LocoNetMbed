@@ -1,7 +1,11 @@
 #ifndef __LOCONET_CLASS_H__
 #define __LOCONET_CLASS_H__
 
+#include <mbed.h>
 #include "LocoNet.h"
+
+#define LOCONET_RX_DEFAULT_PIN D8
+#define LOCONET_TX_DEFAULT_PIN D7
 
 typedef enum
 {
@@ -18,13 +22,16 @@ class LocoNetClass
 {
 private:
   LnBuf LnBuffer ;
-  uint8_t _tx_pin;
-  void setTxPin(uint8_t txPin);
+  DigitalOut *_txPin;
+  Interruptin  *_rxPin;
+  void setTxPin(PinName txPin);
+  void setRxPin(PinName rxPin);
   
 public:
   LocoNetClass();
     void        init(void);
-    void        init(uint8_t txPin);
+    void        init(PinName txPin);
+    void        init(PinName txPin, PinName rxPin);
     bool     available(void);
     uint8_t     length(void);
     lnMsg*      receive(void);
@@ -36,7 +43,7 @@ public:
     
     LnBufStats* getStats(void);
     
-        const char*     getStatusStr(LN_STATUS Status);
+    const char*     getStatusStr(LN_STATUS Status);
     
     uint8_t processSwitchSensorMessage( lnMsg *LnPacket ) ;
     uint8_t processPowerTransponderMessage( lnMsg *LnPacket ) ;

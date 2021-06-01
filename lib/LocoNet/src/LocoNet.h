@@ -1,8 +1,6 @@
 #ifndef __LOCONET_H__
 #define __LOCONET_H__
 
-#define LOCONET_DEFAULT_RX_PIN 6
-#define LOCONET_DEFAULT_TX_PIN 7
 // CD Backoff starts after the Stop Bit (Bit 9) and has a minimum or 20 Bit Times
 // but initially starts with an additional 20 Bit Times 
 #define   LN_CARRIER_TICKS      20  // carrier detect backoff - all devices have to wait this
@@ -53,6 +51,6 @@ extern void notifyMultiSensePower( uint8_t BoardID, uint8_t Subdistrict, uint8_t
 
 
 
-// extern LocoNetClass LocoNet;
+extern LocoNetClass LocoNet;
 
 #endif // __LOCONET_H__
