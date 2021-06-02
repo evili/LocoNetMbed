@@ -5,32 +5,32 @@
 
 #ifdef LN_SW_UART_TX_INVERTED  //normally output is driven via NPN, so it is inverted
         #ifndef LN_SW_UART_SET_TX_LOW // putting a 1 to the pin to switch on NPN transistor
-        #define LN_SW_UART_SET_TX_LOW()  txPin.write(1)   // to pull down LN line to drive low level
+        #define LN_SW_UART_SET_TX_LOW()  txPin->write(1)   // to pull down LN line to drive low level
         #endif
 
         #ifndef LN_SW_UART_SET_TX_HIGH                              // putting a 0 to the pin to switch off NPN transistor
-        #define LN_SW_UART_SET_TX_HIGH(LN_TX_PORT, LN_TX_BIT) txPin.write(0) // master pull up will take care of high LN level
+        #define LN_SW_UART_SET_TX_HIGH() txPin->write(0) // master pull up will take care of high LN level
         #endif
 #else //non-inverted output logic
         #ifndef LN_SW_UART_SET_TX_LOW                               // putting a 1 to the pin to switch on NPN transistor
-        #define LN_SW_UART_SET_TX_LOW() txPin.write(0)  // to pull down LN line to drive low level
+        #define LN_SW_UART_SET_TX_LOW() txPin->write(0)  // to pull down LN line to drive low level
         #endif
         #ifndef LN_SW_UART_SET_TX_HIGH                              // putting a 0 to the pin to switch off NPN transistor
-        #define LN_SW_UART_SET_TX_HIGH() txPin.write(1) // master pull up will take care of high LN level
+        #define LN_SW_UART_SET_TX_HIGH() txPin->write(1) // master pull up will take care of high LN level
         #endif
 #endif // LN_SW_UART_TX_INVERTED
 
 #ifdef LN_SW_UART_TX_INVERTED
         #ifdef LN_SW_UART_RX_INVERTED
-        #define IS_LN_COLLISION()       txPin.read() != rxPin.read()
+        #define IS_LN_COLLISION()       txPin->read() != rxPin->read()
         #else
-        #define IS_LN_COLLISION()       txPin.read() == rxPin.read()
+        #define IS_LN_COLLISION()       txPin->read() == rxPin->read()
         #endif
 #else
         #ifdef LN_SW_UART_RX_INVERTED
-        #define IS_LN_COLLISION()       txPin.read() == rxPin.read()
+        #define IS_LN_COLLISION()       txPin->read() == rxPin->read()
         #else
-        #define IS_LN_COLLISION()       txPin.read() != rxPin.read()
+        #define IS_LN_COLLISION()       txPin->read() != rxPin->read()
         #endif
 #endif
 
@@ -50,7 +50,8 @@ const std::chrono::microseconds LN_BIT_PERIOD             = 60us;
 const std::chrono::microseconds LN_TIMER_RX_START_PERIOD  = LN_BIT_PERIOD + (LN_BIT_PERIOD / 2);
 const std::chrono::microseconds LN_TIMER_RX_RELOAD_PERIOD = LN_BIT_PERIOD;
 const std::chrono::microseconds LN_TIMER_TX_RELOAD_PERIOD = LN_BIT_PERIOD;
-
+//  14,4 us delay borrowed from FREDI sysdef.h
+const std::chrono::microseconds LN_TIMER_TX_RELOAD_ADJUSTED = 59us;
 // ATTENTION !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 // LN_TIMER_TX_RELOAD_ADJUST is a value for an error correction. This is needed for
 // every start of a byte. The first bit is to long. Therefore we need to reduce the
@@ -70,8 +71,7 @@ const std::chrono::microseconds LN_TIMER_TX_RELOAD_PERIOD = LN_BIT_PERIOD;
 
 
 // ATTENTION !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-void initLocoNetHardware( LnBuf *RxBuffer, DigitalOut txPin, Interruptin rxPin);
+void initLocoNetHardware( LnBuf *RxBuffer, DigitalOut *txPin, InterruptIn *rxPin);
 LN_STATUS sendLocoNetPacketTry(lnMsg *TxData, unsigned char ucPrioDelay);
 
 #endif // __LW_SW_UART_H__
-

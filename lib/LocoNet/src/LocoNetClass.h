@@ -23,7 +23,7 @@ class LocoNetClass
 private:
   LnBuf LnBuffer ;
   DigitalOut *_txPin;
-  Interruptin  *_rxPin;
+  InterruptIn  *_rxPin;
   void setTxPin(PinName txPin);
   void setRxPin(PinName rxPin);
   
@@ -53,5 +53,7 @@ public:
     LN_STATUS reportSensor( uint16_t Address, uint8_t State ) ;
     LN_STATUS reportPower( uint8_t State ) ;
 };
+
+extern LocoNetClass LocoNet;
 
 #endif // __LOCONET_CLASS_H__

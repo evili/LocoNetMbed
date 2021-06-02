@@ -49,8 +49,4 @@ extern void notifyMultiSensePower( uint8_t BoardID, uint8_t Subdistrict, uint8_t
 }
 #endif
 
-
-
-extern LocoNetClass LocoNet;
-
 #endif // __LOCONET_H__

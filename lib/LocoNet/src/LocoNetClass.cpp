@@ -31,7 +31,7 @@ void LocoNetClass::init(PinName txPin, PinName rxPin)
   initLnBuf(&LnBuffer) ;
   setTxPin(txPin);
   setRxPin(rxPin);
-  initLocoNetHardware(&LnBuffer, );
+  initLocoNetHardware(&LnBuffer, _txPin, _rxPin);
 }
 
 const char* LocoNetClass::getStatusStr(LN_STATUS Status)
@@ -48,7 +48,7 @@ void LocoNetClass::setTxPin(PinName txPin) {
 }
 
 void LocoNetClass::setRxPin(PinName rxPin) {
-  _rxPin = new Interruptin(rxPin);
+  _rxPin = new InterruptIn(rxPin);
 }
 
 

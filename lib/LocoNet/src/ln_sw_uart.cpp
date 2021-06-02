@@ -55,8 +55,18 @@ volatile uint8_t  lnTxIndex ;
 volatile uint8_t  lnTxLength ;
 volatile uint8_t  lnTxSuccess ;   // this boolean flag as a message from timer interrupt to send function
 
+DigitalOut *txPin;
+InterruptIn *rxPin;
+
 Ticker lnTicker;
 Timer lnTimer;
+
+void LN_TMR_SIGNAL();
+
+inline void scheduleLnTicker(const std::chrono::microseconds period) {
+  lnTicker.detach();
+  lnTicker.attach(LN_TMR_SIGNAL, period);
+}
 
 
 /**************************************************************************
@@ -70,12 +80,13 @@ Timer lnTimer;
  * incoming data.
  *
  **************************************************************************/
-
 void LN_SB_SIGNAL()
 {
   // Disable the Input Comparator Interrupt
   // TODO: cbi( LN_SB_INT_ENABLE_REG, LN_SB_INT_ENABLE_BIT );     
-  rxPin.disable_irq();
+  rxPin->disable_irq();
+  // Set the State to indicate that we have begun to Receive
+  lnState = LN_ST_RX;
   // Get the Current Timer1 Count and Add the offset for the Compare target
   // TODO: lnCompareTarget = LN_TMR_INP_CAPT_REG + LN_TIMER_RX_START_PERIOD ;
   // LN_TMR_OUTP_CAPT_REG = lnCompareTarget ;
@@ -83,9 +94,7 @@ void LN_SB_SIGNAL()
   // Clear the current Compare interrupt status bit and enable the Compare interrupt
   // TODO: sbi(LN_TMR_INT_STATUS_REG, LN_TMR_INT_STATUS_BIT) ;
   // TODO: sbi(LN_TMR_INT_ENABLE_REG, LN_TMR_INT_ENABLE_BIT) ; 
-
-  // Set the State to indicate that we have begun to Receive
-  lnState = LN_ST_RX ;
+  scheduleLnTicker(LN_TIMER_RX_START_PERIOD);
 
   // Reset the bit counter so that on first increment it is on 0
   lnBitCount = 0;
@@ -107,8 +116,10 @@ void LN_TMR_SIGNAL()    /* signal handler for timer0 overflow */
   // Advance the Compare Target by a bit period
   // TODO: lnCompareTarget += LN_TIMER_RX_RELOAD_PERIOD;
   // TODO: LN_TMR_OUTP_CAPT_REG = lnCompareTarget;
-  lnTicker.attach(LN_TMRSIGNAE, N_TIMER_RX_RELOAD_PERIOD);
-
+  // only need to adjust reload period if coming from start bit
+  if(lnBitCount==0) {
+    scheduleLnTicker(LN_TIMER_RX_RELOAD_PERIOD);
+  }
 
   lnBitCount++;                // Increment bit_counter
 
@@ -116,10 +127,10 @@ void LN_TMR_SIGNAL()    /* signal handler for timer0 overflow */
     if( lnBitCount < 9)  {   // Are we in the Stop Bits phase
       lnCurrentByte >>= 1;
 #ifdef LN_SW_UART_RX_INVERTED
-      if( rxPin.read() == 0 ) {
+      if( rxPin->read() == 0 ) {
       // if( bit_is_clear(LN_RX_PORT, LN_RX_BIT)) {
 #else		
-      if( rxPin.read() != 0) {
+      if( rxPin->read() != 0) {
 	//if(bit_is_set(LN_RX_PORT, LN_RX_BIT)) {
 #endif
         lnCurrentByte |= 0x80;
@@ -131,14 +142,15 @@ void LN_TMR_SIGNAL()    /* signal handler for timer0 overflow */
     // detect the next Start Bit
     // TODO: sbi( LN_SB_INT_STATUS_REG, LN_SB_INT_STATUS_BIT ) ;
     // TODO: sbi( LN_SB_INT_ENABLE_REG, LN_SB_INT_ENABLE_BIT ) ;
-    
+    rxPin->enable_irq();
+    lnTicker.detach();
 
     // If the Stop bit is not Set then we have a Framing Error
 #ifdef LN_SW_UART_RX_INVERTED
-      if( rxPin.read() != 0) {      
+      if( rxPin->read() != 0) {      
       //    if( bit_is_set(LN_RX_PORT,LN_RX_BIT) ) {
 #else
-      if( rxPin.read() == 0) {      
+      if( rxPin->read() == 0) {      
 	// if( bit_is_clear(LN_RX_PORT,LN_RX_BIT) ) {
 #endif		
       // ERROR_LED_ON();
@@ -161,15 +173,15 @@ void LN_TMR_SIGNAL()    /* signal handler for timer0 overflow */
     } 
     else if( lnBitCount < 9) {   			 // Send each Bit
       if( lnCurrentByte & 0x01 ) {
-        LN_SW_UART_SET_TX_HIGH(LN_TX_PORT, LN_TX_BIT);
+        LN_SW_UART_SET_TX_HIGH();
       } 
       else {
-        LN_SW_UART_SET_TX_LOW(LN_TX_PORT, LN_TX_BIT);
+        LN_SW_UART_SET_TX_LOW();
       }
       lnCurrentByte >>= 1;
     } 
     else if( lnBitCount ==  9) {   		 // Generate stop-bit
-      LN_SW_UART_SET_TX_HIGH(LN_TX_PORT, LN_TX_BIT);
+      LN_SW_UART_SET_TX_HIGH();
     } 
     else if( ++lnTxIndex < lnTxLength ) {  // Any more bytes in buffer
       // Setup for the next byte
@@ -177,12 +189,14 @@ void LN_TMR_SIGNAL()    /* signal handler for timer0 overflow */
       lnCurrentByte = lnTxData->data[ lnTxIndex ] ;
 
       // Begin the Start Bit
-      LN_SW_UART_SET_TX_LOW(LN_TX_PORT, LN_TX_BIT);
+      LN_SW_UART_SET_TX_LOW();
 
       // Get the Current Timer1 Count and Add the offset for the Compare target
       // added adjustment value for bugfix (Olaf Funke)
       // lnCompareTarget = LN_TMR_COUNT_REG + LN_TIMER_TX_RELOAD_PERIOD - LN_TIMER_TX_RELOAD_ADJUST; 
       // LN_TMR_OUTP_CAPT_REG = lnCompareTarget ;
+      // Needed??
+      scheduleLnTicker(LN_TIMER_TX_RELOAD_ADJUSTED);
     } 
     else {
       // Successfully Sent all bytes in the buffer
@@ -202,12 +216,12 @@ void LN_TMR_SIGNAL()    /* signal handler for timer0 overflow */
   if( lnState == LN_ST_TX_COLLISION ) {
     if( lnBitCount == 0 ) {
       // Pull the TX Line low to indicate Collision
-      LN_SW_UART_SET_TX_LOW(LN_TX_PORT, LN_TX_BIT);
+      LN_SW_UART_SET_TX_LOW();
       // ERROR_LED_ON();
     } 
     else if( lnBitCount >= LN_COLLISION_TICKS ) {
       // Release the TX Line
-      LN_SW_UART_SET_TX_HIGH(LN_TX_PORT, LN_TX_BIT);
+      LN_SW_UART_SET_TX_HIGH();
       // ERROR_LED_OFF();
 
       lnBitCount = 0 ;
@@ -224,29 +238,33 @@ void LN_TMR_SIGNAL()    /* signal handler for timer0 overflow */
       // detect the next Start Bit
       // TODO: sbi( LN_SB_INT_STATUS_REG, LN_SB_INT_STATUS_BIT ) ;
       // TODO: sbi( LN_SB_INT_ENABLE_REG, LN_SB_INT_ENABLE_BIT ) ;
+      rxPin->enable_irq();
     } 
     else if( lnBitCount >= LN_BACKOFF_MAX ) { 
       // declare network to free after maximum backoff delay
       lnState = LN_ST_IDLE ;
       // TODO: cbi( LN_TMR_INT_ENABLE_REG, LN_TMR_INT_ENABLE_BIT ) ;
+      lnTicker.detach();
     }
   }
 }
 
 
-void initLocoNetHardware( LnBuf *RxBuffer, DigitalOut txPin, Interruptin rxPin )
+void initLocoNetHardware( LnBuf *RxBuffer, DigitalOut *tx, InterruptIn *rx )
 {
   lnRxBuffer = RxBuffer ;
+  txPin = tx;
+  rxPin = rx;
 
   // Set the RX line to Input
   // TODO: cbi( LN_RX_DDR, LN_RX_BIT ) ;
   // Set the TX line to Inactive
-  LN_SW_UART_SET_TX_HIGH(txPin);
-  rxPin.disable_irq();
+  LN_SW_UART_SET_TX_HIGH();
+  rxPin->disable_irq();
   #ifdef LN_SW_UART_RX_INVERTED
-  rxPin.rise(LN_SB_SIGNAL);
+  rxPin->rise(LN_SB_SIGNAL);
   #else
-  rxPin.fall(LN_SB_SIGNAL);
+  rxPin->fall(LN_SB_SIGNAL);
   #endif
   
   // First Enable the Analog Comparitor Power, 
@@ -263,7 +281,7 @@ void initLocoNetHardware( LnBuf *RxBuffer, DigitalOut txPin, Interruptin rxPin )
   // TODO: TCCR1B |= (1<<ICNC1) ;    		// Enable Noise Canceler 
   lnState = LN_ST_IDLE ;
 
-  rxPin.enable_irq();
+  rxPin->enable_irq();
   
   //Clear StartBit Interrupt flag
   // TODO: sbi( LN_SB_INT_STATUS_REG, LN_SB_INT_STATUS_BIT );
@@ -302,14 +320,18 @@ LN_STATUS sendLocoNetPacketTry(lnMsg *TxData, unsigned char ucPrioDelay)
     ucPrioDelay = LN_BACKOFF_MAX;
   }
   // if priority delay was waited now, declare net as free for this try
-  cli();  // disabling interrupt to avoid confusion by ISR changing lnState while we want to do it
+  CriticalSectionLock::enable();  // disabling interrupt to avoid confusion by ISR changing lnState while we want to do it
   if (lnState == LN_ST_CD_BACKOFF) {
     if (lnBitCount >= ucPrioDelay) {	// Likely we don't want to wait as long as
       lnState = LN_ST_IDLE;			// the timer ISR waits its maximum delay.
-      cbi( LN_TMR_INT_ENABLE_REG, LN_TMR_INT_ENABLE_BIT ) ;
+      
+      // TODO: cbi( LN_TMR_INT_ENABLE_REG, LN_TMR_INT_ENABLE_BIT ) ;
+      lnTicker.detach();
     }
   }
-  sei();  // a delayed start bit interrupt will happen now,
+  CriticalSectionLock::disable();
+  // sei();
+  // a delayed start bit interrupt will happen now,
   // a delayed timer interrupt was stalled
 
   // If the Network is not Idle, don't start the packet
@@ -329,24 +351,35 @@ LN_STATUS sendLocoNetPacketTry(lnMsg *TxData, unsigned char ucPrioDelay)
   // The last time we check for free net until sending our start bit
   // must be as short as possible, not interrupted.
   // TODO: cli() ;
+  CriticalSectionLock::enable();
   // Before we do anything else - Disable StartBit Interrupt
   // TODO: cbi( LN_SB_INT_ENABLE_REG, LN_SB_INT_ENABLE_BIT ) ;
-  if (bit_is_set(LN_SB_INT_STATUS_REG, LN_SB_INT_STATUS_BIT)) {
+  rxPin->disable_irq();
+
+  #ifdef LN_SW_UART_RX_INVERTED
+  if (rxPin->read() == 0) {
+  #else
+  if (rxPin->read() != 0) {
+  #endif
+    // if (bit_is_set(LN_SB_INT_STATUS_REG, LN_SB_INT_STATUS_BIT)) {
     // first we disabled it, than before sending the start bit, we found out
     // that somebody was faster by examining the start bit interrupt request flag
     // TODO: sbi( LN_SB_INT_ENABLE_REG, LN_SB_INT_ENABLE_BIT ) ;
     // TODO: sei() ;  // receive now what our rival is sending
+    rxPin->enable_irq();
+    CriticalSectionLock::disable();
     return LN_NETWORK_BUSY;
   }
 
-  LN_SW_UART_SET_TX_LOW(LN_TX_PORT, LN_TX_BIT);        // Begin the Start Bit
+  LN_SW_UART_SET_TX_LOW();  // Begin the Start Bit
 
   // Get the Current Timer1 Count and Add the offset for the Compare target
   // added adjustment value for bugfix (Olaf Funke)
-  lnCompareTarget = LN_TMR_COUNT_REG + LN_TIMER_TX_RELOAD_PERIOD - LN_TIMER_TX_RELOAD_ADJUST;
-  LN_TMR_OUTP_CAPT_REG = lnCompareTarget ;
+  // TODO: lnCompareTarget = LN_TMR_COUNT_REG + LN_TIMER_TX_RELOAD_PERIOD - LN_TIMER_TX_RELOAD_ADJUST;
+  // TODO: LN_TMR_OUTP_CAPT_REG = lnCompareTarget ;
 
   // TODO: sei() ;  // Interrupts back on ...
+  CriticalSectionLock::disable();
 
   lnTxData = TxData ;
   lnTxIndex = 0 ;
@@ -363,7 +396,8 @@ LN_STATUS sendLocoNetPacketTry(lnMsg *TxData, unsigned char ucPrioDelay)
 
   // Clear the current Compare interrupt status bit and enable the Compare interrupt
   // TODO: sbi(LN_TMR_INT_STATUS_REG, LN_TMR_INT_STATUS_BIT) ;
-  // TODO: sbi(LN_TMR_INT_ENABLE_REG, LN_TMR_INT_ENABLE_BIT) ; 
+  // TODO: sbi(LN_TMR_INT_ENABLE_REG, LN_TMR_INT_ENABLE_BIT) ;
+  scheduleLnTicker(LN_TIMER_TX_RELOAD_ADJUSTED);
 
   while (lnState == LN_ST_TX) {
     // now busy wait until the interrupts do the rest

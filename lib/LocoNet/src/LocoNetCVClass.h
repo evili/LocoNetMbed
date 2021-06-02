@@ -23,7 +23,6 @@
 #define LNCV_MIN_MODULEADDR (0)
 #define LNCV_MAX_MODULEADDR (65534)
 
-
 class LocoNetCVClass
 {
   private:

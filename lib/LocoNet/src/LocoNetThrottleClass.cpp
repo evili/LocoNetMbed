@@ -711,6 +711,8 @@ TH_ERROR LocoNetThrottleClass::setSpeedSteps(TH_SPEED_STEPS newSpeedSteps)
         LocoNet.send(OPC_SLOT_STAT1, mySlot, myStatus1);
   }
   updateSpeedSteps(mySpeedSteps, 1);
+
+  return TH_ER_OK;
 }
 
 const char *LocoNetThrottleClass::getSpeedStepStr( TH_SPEED_STEPS speedStep )
