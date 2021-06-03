@@ -59,7 +59,6 @@ DigitalOut *txPin;
 InterruptIn *rxPin;
 
 Ticker lnTicker;
-Timer lnTimer;
 
 void LN_TMR_SIGNAL();
 
@@ -116,8 +115,8 @@ void LN_TMR_SIGNAL()    /* signal handler for timer0 overflow */
   // Advance the Compare Target by a bit period
   // TODO: lnCompareTarget += LN_TIMER_RX_RELOAD_PERIOD;
   // TODO: LN_TMR_OUTP_CAPT_REG = lnCompareTarget;
-  // only need to adjust reload period if coming from start bit
-  if(lnBitCount==0) {
+  // only need to adjust reload period if coming from RX start bit
+  if ((lnBitCount==0) && (lnState == LN_ST_RX)) {
     scheduleLnTicker(LN_TIMER_RX_RELOAD_PERIOD);
   }
 
@@ -143,7 +142,6 @@ void LN_TMR_SIGNAL()    /* signal handler for timer0 overflow */
     // TODO: sbi( LN_SB_INT_STATUS_REG, LN_SB_INT_STATUS_BIT ) ;
     // TODO: sbi( LN_SB_INT_ENABLE_REG, LN_SB_INT_ENABLE_BIT ) ;
     rxPin->enable_irq();
-    lnTicker.detach();
 
     // If the Stop bit is not Set then we have a Framing Error
 #ifdef LN_SW_UART_RX_INVERTED
@@ -295,7 +293,6 @@ void initLocoNetHardware( LnBuf *RxBuffer, DigitalOut *tx, InterruptIn *rx )
   
   // Set Timer Clock Source 
   // TODO: LN_TMR_CONTROL_REG = (LN_TMR_CONTROL_REG & 0xF8) | LN_TMR_PRESCALER;
-  lnTimer.start();
 }
 
 LN_STATUS sendLocoNetPacketTry(lnMsg *TxData, unsigned char ucPrioDelay)
