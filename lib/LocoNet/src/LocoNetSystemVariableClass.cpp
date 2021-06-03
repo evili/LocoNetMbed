@@ -1,4 +1,6 @@
 #include "LocoNetSystemVariableClass.h"
+#include "ln_sw_uart.h"
+#include "utils.h"
 
 void LocoNetSystemVariableClass::init(uint8_t newMfgId, uint8_t newDevId, uint16_t newProductId, uint8_t newSwVersion)
 {
@@ -35,7 +37,7 @@ uint8_t LocoNetSystemVariableClass::readSVStorage(uint16_t Offset )
   else
   {
     Offset -= 2;    // Map SV Address to EEPROM Offset - Skip SV_ADDR_EEPROM_SIZE & SV_ADDR_SW_VERSION
-    retValue = eeprom_read_byte((uint8_t*)Offset);
+    retValue = eeprom_read_byte((uint32_t) Offset);
   }
         return retValue;
 }
@@ -43,14 +45,14 @@ uint8_t LocoNetSystemVariableClass::readSVStorage(uint16_t Offset )
 uint8_t LocoNetSystemVariableClass::writeSVStorage(uint16_t Offset, uint8_t Value)
 {
   Offset -= 2;      // Map SV Address to EEPROM Offset - Skip SV_ADDR_EEPROM_SIZE & SV_ADDR_SW_VERSION
-  if( eeprom_read_byte((uint8_t*)Offset) != Value )
+  if( eeprom_read_byte((uint32_t) Offset) != Value )
   {
-    eeprom_write_byte((uint8_t*)Offset, Value);
+    eeprom_write_byte((uint32_t) Offset, Value);
     
     if(notifySVChanged)
       notifySVChanged(Offset+2);
   }    
-  return eeprom_read_byte((uint8_t*)Offset) ;
+  return eeprom_read_byte((uint32_t) Offset) ;
 }
 
 uint8_t LocoNetSystemVariableClass::isSVStorageValid(uint16_t Offset)
@@ -87,8 +89,8 @@ uint16_t LocoNetSystemVariableClass::writeSVNodeId(uint16_t newNodeId)
     Serial.println(newNodeId);
 #endif
     
-    writeSVStorage(SV_ADDR_NODE_ID_H, newNodeId >> (byte) 8);
-    writeSVStorage(SV_ADDR_NODE_ID_L, newNodeId & (byte) 0x00FF);
+    writeSVStorage(SV_ADDR_NODE_ID_H, newNodeId >> (uint8_t) 8);
+    writeSVStorage(SV_ADDR_NODE_ID_L, newNodeId & (uint8_t) 0x00FF);
     
     return readSVNodeId();
 }
@@ -100,8 +102,8 @@ uint16_t LocoNetSystemVariableClass::readSVNodeId(void)
 
 typedef union
 {
-word                   w;
-struct { byte lo,hi; } b;
+uint16_t                   w;
+struct { uint8_t lo,hi; } b;
 } U16_t;
 
 typedef union
@@ -113,19 +115,19 @@ struct
   U16_t unproductId;
   U16_t unSerialNumber;
 }    stDecoded;
-byte abPlain[8];
+uint8_t abPlain[8];
 } SV_Addr_t;
 
 SV_STATUS LocoNetSystemVariableClass::processMessage(lnMsg *LnPacket )
 {
   SV_Addr_t unData ;
    
-  if( ( LnPacket->sv.mesg_size != (byte) 0x10 ) ||
-      ( LnPacket->sv.command != (byte) OPC_PEER_XFER ) ||
-      ( LnPacket->sv.sv_type != (byte) 0x02 ) ||
-      ( LnPacket->sv.sv_cmd & (byte) 0x40 ) ||
-      ( ( LnPacket->sv.svx1 & (byte) 0xF0 ) != (byte) 0x10 ) ||
-      ( ( LnPacket->sv.svx2 & (byte) 0xF0 ) != (byte) 0x10 ) )
+  if( ( LnPacket->sv.mesg_size != (uint8_t) 0x10 ) ||
+      ( LnPacket->sv.command != (uint8_t) OPC_PEER_XFER ) ||
+      ( LnPacket->sv.sv_type != (uint8_t) 0x02 ) ||
+      ( LnPacket->sv.sv_cmd & (uint8_t) 0x40 ) ||
+      ( ( LnPacket->sv.svx1 & (uint8_t) 0xF0 ) != (uint8_t) 0x10 ) ||
+      ( ( LnPacket->sv.svx2 & (uint8_t) 0xF0 ) != (uint8_t) 0x10 ) )
     return SV_OK ;
  
   decodePeerData( &LnPacket->px, unData.abPlain ) ;
@@ -244,7 +246,7 @@ SV_STATUS LocoNetSystemVariableClass::processMessage(lnMsg *LnPacket )
     
   if (LnPacket->sv.sv_cmd == (SV_RECONFIGURE | 0x40))
   {
-    wdt_enable(WDTO_15MS);  // prepare for reset
+    Watchdog::get_instance().start(15); // prepare for reset
     while (1) {}            // stop and wait for watchdog to knock us out
   }
    
@@ -258,13 +260,13 @@ SV_STATUS LocoNetSystemVariableClass::doDeferredProcessing( void )
     lnMsg msg ;
     SV_Addr_t unData ;
     
-    msg.sv.command = (byte) OPC_PEER_XFER ;
-    msg.sv.mesg_size = (byte) 0x10 ;
+    msg.sv.command = (uint8_t) OPC_PEER_XFER ;
+    msg.sv.mesg_size = (uint8_t) 0x10 ;
     msg.sv.src = DeferredSrcAddr ;
-    msg.sv.sv_cmd = SV_DISCOVER | (byte) 0x40 ;
-    msg.sv.sv_type = (byte) 0x02 ; 
-    msg.sv.svx1 = (byte) 0x10 ;
-    msg.sv.svx2 = (byte) 0x10 ;
+    msg.sv.sv_cmd = SV_DISCOVER | (uint8_t) 0x40 ;
+    msg.sv.sv_type = (uint8_t) 0x02 ; 
+    msg.sv.svx1 = (uint8_t) 0x10 ;
+    msg.sv.svx2 = (uint8_t) 0x10 ;
     
     unData.stDecoded.unDestinationId.w            = readSVNodeId();
     unData.stDecoded.unMfgIdDevIdOrSvAddress.b.lo = mfgId;
@@ -277,7 +279,7 @@ SV_STATUS LocoNetSystemVariableClass::doDeferredProcessing( void )
 
     /* Note that this operation intentionally uses a "make one attempt to
        send to LocoNet" method here */
-    if( sendLocoNetPacketTry( &msg, LN_BACKOFF_INITIAL + ( unData.stDecoded.unSerialNumber.b.lo % (byte) 10 ) ) != LN_DONE )
+    if( sendLocoNetPacketTry( &msg, LN_BACKOFF_INITIAL + ( unData.stDecoded.unSerialNumber.b.lo % (uint8_t) 10 ) ) != LN_DONE )
       return SV_DEFERRED_PROCESSING_NEEDED ;
 
     DeferredProcessingRequired = 0 ;

@@ -3,6 +3,10 @@
 
 #include "LocoNet.h"
 
+#ifndef E2END
+#define E2END (1024u)
+#endif
+
 /************************************************************************************
     SV (System Variable Handling
 ************************************************************************************/
@@ -153,6 +157,10 @@ class LocoNetSystemVariableClass
          */
     SV_STATUS doDeferredProcessing( void );
 };
+
+inline uint8_t eeprom_read_byte(uint32_t Offset) {return 0xFFu;};
+inline void eeprom_write_byte(uint32_t Offset, uint16_t Value) {};
+
 
 #if defined (__cplusplus)
         extern "C" {

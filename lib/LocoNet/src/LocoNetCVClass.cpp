@@ -148,7 +148,7 @@ uint8_t LocoNetCVClass::processLNCVMessage(lnMsg * LnPacket) {
                                                                 DEBUG(LnPacket->ub.payload.data.lncvValue);
                                                                 DEBUG("\n");
                                                                 makeLNCVresponse(response.ub, LnPacket->ub.SRC, LnPacket->ub.payload.data.deviceClass, 0x00, LnPacket->ub.payload.data.lncvValue, 0x80);
-                                                                delay(10); // for whatever reason, we need to delay, otherwise the message will not be sent.
+								ThisThread::sleep_for(10ms); // for whatever reason, we need to delay, otherwise the message will not be sent.
                                                                 #ifdef DEBUG_OUTPUT
                                                                 printPacket((lnMsg*)&response);
                                                                 #endif
