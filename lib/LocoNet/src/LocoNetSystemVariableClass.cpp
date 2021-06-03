@@ -2,6 +2,41 @@
 #include "ln_sw_uart.h"
 #include "utils.h"
 
+#include <mbed.h>
+
+#include "kvstore_global_api.h"
+#define SV_PREFIX "/SV/"
+#define SV_FORMAT SV_PREFIX "%03X"
+#define SV_KEY_LEN (7)
+#define SV_UNSET_VALUE (0xFFu)
+
+kv_info_t info;
+char kv_key[SV_KEY_LEN+1] = {0};
+
+inline uint8_t eeprom_read_byte(uint16_t Offset) {
+  uint8_t value = SV_UNSET_VALUE;
+  size_t actual_size;
+  snprintf(kv_key, SV_KEY_LEN, SV_FORMAT, Offset);
+  int res = kv_get_info(kv_key, &info);
+  if(info.size == sizeof(uint8_t)) {
+    res = kv_get(kv_key, &value, info.size, &actual_size);
+    if( (res != MBED_SUCCESS) || (actual_size != info.size) )
+      value = SV_UNSET_VALUE;
+  }
+  return value;
+};
+
+inline void eeprom_write_byte(uint16_t Offset, uint8_t Value) {
+  int res;
+  uint8_t oldValue = eeprom_read_byte(Offset);
+  if(oldValue != Value)
+    res = kv_set(kv_key, &Value, sizeof(uint8_t), 0);
+  if(MBED_SUCCESS != res)
+    printf("WARNING: LocoNet SV write failed for SV = %u\n", Offset);
+}
+
+
+
 void LocoNetSystemVariableClass::init(uint8_t newMfgId, uint8_t newDevId, uint16_t newProductId, uint8_t newSwVersion)
 {
   DeferredProcessingRequired = 0;
@@ -9,8 +44,17 @@ void LocoNetSystemVariableClass::init(uint8_t newMfgId, uint8_t newDevId, uint16
     
   mfgId = newMfgId ;
   devId = newDevId ;
-        productId = newProductId ;
+  productId = newProductId ;
   swVersion = newSwVersion ;
+  
+  int res = MBED_ERROR_NOT_READY;
+  res = kv_reset("/SV/");
+  if(res != MBED_SUCCESS){
+    printf("Could not initialize storage: %d\n", res);
+    printf("You should now reset your board.\n");
+    while(true){ ThisThread::sleep_for(1000ms); };
+  }
+  // TODO: Handle Errors.
 }
 
 uint8_t LocoNetSystemVariableClass::readSVStorage(uint16_t Offset )

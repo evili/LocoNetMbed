@@ -158,8 +158,6 @@ class LocoNetSystemVariableClass
     SV_STATUS doDeferredProcessing( void );
 };
 
-inline uint8_t eeprom_read_byte(uint32_t Offset) {return 0xFFu;};
-inline void eeprom_write_byte(uint32_t Offset, uint16_t Value) {};
 
 
 #if defined (__cplusplus)
