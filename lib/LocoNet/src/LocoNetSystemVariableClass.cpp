@@ -6,8 +6,8 @@
 
 #include "kvstore_global_api.h"
 #define SV_PREFIX "/SV/"
-#define SV_FORMAT SV_PREFIX "%03X"
-#define SV_KEY_LEN (7)
+#define SV_FORMAT "/SV/%03X"
+#define SV_KEY_LEN (9)
 #define SV_UNSET_VALUE (0xFFu)
 
 kv_info_t info;
@@ -27,12 +27,13 @@ inline uint8_t eeprom_read_byte(uint16_t Offset) {
 };
 
 inline void eeprom_write_byte(uint16_t Offset, uint8_t Value) {
-  int res;
+  int res = MBED_ERROR_NOT_READY;
   uint8_t oldValue = eeprom_read_byte(Offset);
-  if(oldValue != Value)
+  if(oldValue != Value) {
     res = kv_set(kv_key, &Value, sizeof(uint8_t), 0);
-  if(MBED_SUCCESS != res)
-    printf("WARNING: LocoNet SV write failed for SV = %u\n", Offset);
+    if(MBED_SUCCESS != res)
+      printf("WARNING: LocoNet SV write failed for SV = %u\n", Offset);
+  }
 }
 
 

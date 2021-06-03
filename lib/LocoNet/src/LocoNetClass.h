@@ -4,8 +4,13 @@
 #include <mbed.h>
 #include "LocoNet.h"
 
+#ifndef LOCONET_RX_DEFAULT_PIN
 #define LOCONET_RX_DEFAULT_PIN D8
+#endif
+#ifndef LOCONET_TX_DEFAULT_PIN
 #define LOCONET_TX_DEFAULT_PIN D7
+#endif
+
 
 typedef enum
 {
