@@ -6,9 +6,7 @@ BufferedSerial pc(USBTX, USBRX, BAUD_RATE);
 
 
 int main() {
-  LocoNetClass LocoNet = LocoNetClass();
-  lnMsg        *LnPacket;
-  uint8_t msgLen;
+  //LocoNetClass LocoNet = LocoNetClass();
 
   // First initialize the LocoNet interface
   LocoNet.init();
@@ -16,8 +14,8 @@ int main() {
   
   while(true) {
     // Check for any received LocoNet packets
-    LnPacket = LocoNet.receive() ;
-    msgLen = getLnMsgSize(LnPacket);
+    lnMsg *LnPacket = LocoNet.receive() ;
+    int msgLen = getLnMsgSize(LnPacket);
     
     if(LnPacket) {
       printf("LocoNet Packet Received (%d): %0x.2\n",
