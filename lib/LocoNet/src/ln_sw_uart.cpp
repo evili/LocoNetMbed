@@ -55,7 +55,7 @@ volatile uint8_t  lnTxIndex ;
 volatile uint8_t  lnTxLength ;
 volatile uint8_t  lnTxSuccess ;   // this boolean flag as a message from timer interrupt to send function
 
-DigitalInOut *txPin;
+DigitalOut *txPin;
 InterruptIn *rxPin;
 
 Ticker lnTicker;
@@ -236,7 +236,7 @@ void LN_TMR_SIGNAL()    /* signal handler for timer0 overflow */
 }
 
 
-void initLocoNetHardware( LnBuf *RxBuffer, DigitalInOut *tx, InterruptIn *rx )
+void initLocoNetHardware( LnBuf *RxBuffer, DigitalOut *tx, InterruptIn *rx )
 {
   lnRxBuffer = RxBuffer ;
   txPin = tx;

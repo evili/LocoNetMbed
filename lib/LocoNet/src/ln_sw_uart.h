@@ -73,7 +73,7 @@ const std::chrono::microseconds LN_TIMER_TX_RELOAD_ADJUSTED = 59us;
 
 
 // ATTENTION !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-void initLocoNetHardware( LnBuf *RxBuffer, DigitalInOut *txPin, InterruptIn *rxPin);
+void initLocoNetHardware( LnBuf *RxBuffer, DigitalOut *txPin, InterruptIn *rxPin);
 LN_STATUS sendLocoNetPacketTry(lnMsg *TxData, unsigned char ucPrioDelay);
 
 #endif // __LW_SW_UART_H__
