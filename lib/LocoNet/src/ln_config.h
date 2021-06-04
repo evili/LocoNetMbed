@@ -56,11 +56,28 @@
 // Can be used with an interface with Serialport like behavior, Rx and Tx need to use the same logic level
 // With the commonly used DIY LocoNet circuitry, its Not Normal to invert the RX Signal
 //#define LN_SW_UART_RX_INVERTED
+#ifndef LN_SW_UART_RX_INVERTED
+#define LN_RX_LOW  (0)
+#define LN_RX_HIGH (1)
+#else
+#define LN_RX_LOW  (1)
+#define LN_RX_HIGH (0)
+#endif
 
 // Uncomment the #define LN_SW_UART_TX_INVERTED below to Invert the polarity of the TX Signal
 // This is typically done where the output signal pin is connected to a NPN Transistor to pull-down the LocoNet
 // which is commonly used in DIY circuit designs, so its normal to be Inverted 
 #define LN_SW_UART_TX_INVERTED
+
+#ifndef LN_SW_UART_TX_INVERTED
+#define LN_TX_LOW  (0)
+#define LN_TX_HIGH (1)
+#else
+#define LN_TX_LOW  (1)
+#define LN_TX_HIGH (0)
+#endif
+
+
 
 #define LN_FREQUENCY              16667 // Hz
 // #define LN_TMR_PRESCALER              1

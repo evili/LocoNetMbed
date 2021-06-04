@@ -37,6 +37,9 @@ inline void eeprom_write_byte(uint16_t Offset, uint8_t Value) {
 }
 
 
+LocoNetSystemVariableClass::LocoNetSystemVariableClass() {
+  init(0xFFu, 0xFFu, 0xFFFFu, 0);
+}
 
 void LocoNetSystemVariableClass::init(uint8_t newMfgId, uint8_t newDevId, uint16_t newProductId, uint8_t newSwVersion)
 {

@@ -55,7 +55,7 @@ volatile uint8_t  lnTxIndex ;
 volatile uint8_t  lnTxLength ;
 volatile uint8_t  lnTxSuccess ;   // this boolean flag as a message from timer interrupt to send function
 
-DigitalOut *txPin;
+DigitalInOut *txPin;
 InterruptIn *rxPin;
 
 Ticker lnTicker;
@@ -125,13 +125,7 @@ void LN_TMR_SIGNAL()    /* signal handler for timer0 overflow */
   if( lnState == LN_ST_RX ) {  // Are we in RX mode
     if( lnBitCount < 9)  {   // Are we in the Stop Bits phase
       lnCurrentByte >>= 1;
-#ifdef LN_SW_UART_RX_INVERTED
-      if( rxPin->read() == 0 ) {
-      // if( bit_is_clear(LN_RX_PORT, LN_RX_BIT)) {
-#else		
-      if( rxPin->read() != 0) {
-	//if(bit_is_set(LN_RX_PORT, LN_RX_BIT)) {
-#endif
+      if (rxPin->read() == LN_RX_HIGH) {
         lnCurrentByte |= 0x80;
       }
       return ;
@@ -144,13 +138,7 @@ void LN_TMR_SIGNAL()    /* signal handler for timer0 overflow */
     rxPin->enable_irq();
 
     // If the Stop bit is not Set then we have a Framing Error
-#ifdef LN_SW_UART_RX_INVERTED
-      if( rxPin->read() != 0) {      
-      //    if( bit_is_set(LN_RX_PORT,LN_RX_BIT) ) {
-#else
-      if( rxPin->read() == 0) {      
-	// if( bit_is_clear(LN_RX_PORT,LN_RX_BIT) ) {
-#endif		
+    if( rxPin->read() == LN_RX_LOW) {
       // ERROR_LED_ON();
       lnRxBuffer->Stats.RxErrors++ ;
     } 
@@ -248,7 +236,7 @@ void LN_TMR_SIGNAL()    /* signal handler for timer0 overflow */
 }
 
 
-void initLocoNetHardware( LnBuf *RxBuffer, DigitalOut *tx, InterruptIn *rx )
+void initLocoNetHardware( LnBuf *RxBuffer, DigitalInOut *tx, InterruptIn *rx )
 {
   lnRxBuffer = RxBuffer ;
   txPin = tx;
@@ -264,7 +252,7 @@ void initLocoNetHardware( LnBuf *RxBuffer, DigitalOut *tx, InterruptIn *rx )
   #else
   rxPin->fall(LN_SB_SIGNAL);
   #endif
-  
+
   // First Enable the Analog Comparitor Power, 
   // Set the mode to Falling Edge
   // Enable Analog Comparator to Trigger the Input Capture unit
@@ -353,11 +341,7 @@ LN_STATUS sendLocoNetPacketTry(lnMsg *TxData, unsigned char ucPrioDelay)
   // TODO: cbi( LN_SB_INT_ENABLE_REG, LN_SB_INT_ENABLE_BIT ) ;
   rxPin->disable_irq();
 
-  #ifdef LN_SW_UART_RX_INVERTED
-  if (rxPin->read() == 0) {
-  #else
-  if (rxPin->read() != 0) {
-  #endif
+  if (rxPin->read() == LN_RX_HIGH) {
     // if (bit_is_set(LN_SB_INT_STATUS_REG, LN_SB_INT_STATUS_BIT)) {
     // first we disabled it, than before sending the start bit, we found out
     // that somebody was faster by examining the start bit interrupt request flag

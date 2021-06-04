@@ -44,11 +44,11 @@ const char* LocoNetClass::getStatusStr(LN_STATUS Status)
 
 
 void LocoNetClass::setTxPin(PinName txPin) {
-  _txPin = new DigitalOut(txPin);
+  _txPin = new DigitalInOut(txPin, PIN_OUTPUT, PullNone, LN_TX_LOW);
 }
 
 void LocoNetClass::setRxPin(PinName rxPin) {
-  _rxPin = new InterruptIn(rxPin);
+  _rxPin = new InterruptIn(rxPin, PullNone);
 }
 
 

@@ -9,6 +9,10 @@
 #define FC_TIMER_TICKS                          65        // 65ms ticks
 #define FC_TIMER_TICKS_REQ                              250        // 250ms waiting for Response to FC Req
 
+LocoNetFastClockClass::LocoNetFastClockClass() {
+  init(0, 0, 0);
+}
+
 void LocoNetFastClockClass::init(uint8_t DCS100CompatibleSpeed, uint8_t CorrectDCS100Clock, uint8_t NotifyFracMin)
 {
   fcState = FC_ST_IDLE ;

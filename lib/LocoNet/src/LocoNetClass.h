@@ -27,7 +27,7 @@ class LocoNetClass
 {
 private:
   LnBuf LnBuffer ;
-  DigitalOut *_txPin;
+  DigitalInOut *_txPin;
   InterruptIn  *_rxPin;
   void setTxPin(PinName txPin);
   void setRxPin(PinName rxPin);

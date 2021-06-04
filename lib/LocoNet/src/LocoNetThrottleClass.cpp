@@ -14,6 +14,10 @@ static uint8_t SwapSpeedZeroAndEmStop( uint8_t Speed )
   return Speed ;
 }
 
+LocoNetThrottleClass::LocoNetThrottleClass() {
+  init(0, 0, LN_THROTTLE_DEFAULT_IDX);
+}
+
 void LocoNetThrottleClass::updateAddress(uint16_t Address, uint8_t ForceNotify )
 {
   if( ForceNotify || myAddress != Address )
