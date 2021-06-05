@@ -96,7 +96,8 @@ class LocoNetSystemVariableClass
          *              1 if all addresses out of the range are valid.
          */
     bool CheckAddressRange(uint16_t startAddress, uint8_t Count);
-        void init(uint8_t newMfgId, uint8_t newDevId, uint16_t newProductId, uint8_t newSwVersion);
+  LocoNetSystemVariableClass();
+    void init(uint8_t newMfgId, uint8_t newDevId, uint16_t newProductId, uint8_t newSwVersion);
         
         /**
          * Check whether a message is an SV programming message. If so, the message

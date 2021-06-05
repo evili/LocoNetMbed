@@ -14,22 +14,15 @@ Timeout stats;
 
 
 int main() {
-  LocoNetClass LocoNet = LocoNetClass();
-  lnMsg        *LnPacket;
-  LnBufStats   *lnStats;
-  uint8_t msgLen;
-  LN_STATUS status;
-  stats.attach(time_for_stats, 5s);
-
+  //LocoNetClass LocoNet = LocoNetClass();
   // First initialize the LocoNet interface
   LocoNet.init();
   printf("Starting LocoNet Monitor\n");
   
   while(true) {
     // Check for any received LocoNet packets
-    // printf("Trying to receive...\n");
-    LnPacket = LocoNet.receive() ;
-    msgLen = getLnMsgSize(LnPacket);
+    lnMsg *LnPacket = LocoNet.receive() ;
+    int msgLen = getLnMsgSize(LnPacket);
     
     if(LnPacket) {
       printf("LocoNet Packet Received (%d): %0x.2\n",

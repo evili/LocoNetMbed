@@ -69,6 +69,7 @@ class LocoNetFastClockClass
         void doNotify( uint8_t Sync );
 
   public:
+        LocoNetFastClockClass();
         void init(uint8_t DCS100CompatibleSpeed, uint8_t CorrectDCS100Clock, uint8_t NotifyFracMin);
         void poll(void);
         void processMessage(lnMsg *LnPacket );

@@ -3,6 +3,8 @@
 
 #include "LocoNet.h"
 
+#define LN_THROTTLE_DEFAULT_IDX 0x3FF0
+
 typedef enum
 {
   TH_ST_FREE   = 0,
@@ -69,6 +71,7 @@ class LocoNetThrottleClass
         void updateSpeedSteps(TH_SPEED_STEPS SpeedSteps, uint8_t ForceNotify);
   
   public:
+        LocoNetThrottleClass();
         void init(uint8_t UserData, uint8_t Options, uint16_t ThrottleId ) ;
 
         void processMessage(lnMsg *LnPacket ) ;

@@ -3,35 +3,37 @@
 
 #include <mbed.h>
 
-#ifdef LN_SW_UART_TX_INVERTED  //normally output is driven via NPN, so it is inverted
-        #ifndef LN_SW_UART_SET_TX_LOW // putting a 1 to the pin to switch on NPN transistor
-        #define LN_SW_UART_SET_TX_LOW()  txPin->write(1)   // to pull down LN line to drive low level
-        #endif
 
-        #ifndef LN_SW_UART_SET_TX_HIGH                              // putting a 0 to the pin to switch off NPN transistor
-        #define LN_SW_UART_SET_TX_HIGH() txPin->write(0) // master pull up will take care of high LN level
-        #endif
-#else //non-inverted output logic
-        #ifndef LN_SW_UART_SET_TX_LOW                               // putting a 1 to the pin to switch on NPN transistor
-        #define LN_SW_UART_SET_TX_LOW() txPin->write(0)  // to pull down LN line to drive low level
-        #endif
-        #ifndef LN_SW_UART_SET_TX_HIGH                              // putting a 0 to the pin to switch off NPN transistor
-        #define LN_SW_UART_SET_TX_HIGH() txPin->write(1) // master pull up will take care of high LN level
-        #endif
-#endif // LN_SW_UART_TX_INVERTED
+#ifndef LN_SW_UART_SET_TX_LOW
+#define LN_SW_UART_SET_TX_LOW()  txPin->write(LN_TX_LOW)
+#endif
 
-#ifdef LN_SW_UART_TX_INVERTED
-        #ifdef LN_SW_UART_RX_INVERTED
-        #define IS_LN_COLLISION()       txPin->read() != rxPin->read()
-        #else
-        #define IS_LN_COLLISION()       txPin->read() == rxPin->read()
-        #endif
+#ifndef LN_SW_UART_SET_TX_HIGH                            // putting a 0 to the pin to switch off NPN transistor
+#define LN_SW_UART_SET_TX_HIGH() txPin->write(LN_TX_HIGH) // master pull up will take care of high LN level
+#endif
+
+/* #ifdef LN_SW_UART_TX_INVERTED  //normally output is driven via NPN, so it is inverted */
+/*         #ifndef LN_SW_UART_SET_TX_LOW // putting a 1 to the pin to switch on NPN transistor */
+/*         #define LN_SW_UART_SET_TX_LOW()  txPin->write(1)   // to pull down LN line to drive low level */
+/*         #endif */
+
+/*         #ifndef LN_SW_UART_SET_TX_HIGH                              // putting a 0 to the pin to switch off NPN transistor */
+/*         #define LN_SW_UART_SET_TX_HIGH() txPin->write(0) // master pull up will take care of high LN level */
+/*         #endif */
+/* #else //non-inverted output logic */
+/*         #ifndef LN_SW_UART_SET_TX_LOW                               // putting a 1 to the pin to switch on NPN transistor */
+/*         #define LN_SW_UART_SET_TX_LOW() txPin->write(0)  // to pull down LN line to drive low level */
+/*         #endif */
+/*         #ifndef LN_SW_UART_SET_TX_HIGH                              // putting a 0 to the pin to switch off NPN transistor */
+/*         #define LN_SW_UART_SET_TX_HIGH() txPin->write(1) // master pull up will take care of high LN level */
+/*         #endif */
+/* #endif // LN_SW_UART_TX_INVERTED */
+
+
+#if LN_TX_HIGH == LN_RX_HIGH
+#define IS_LN_COLLISION() (txPin->read() != rxPin->read())
 #else
-        #ifdef LN_SW_UART_RX_INVERTED
-        #define IS_LN_COLLISION()       txPin->read() == rxPin->read()
-        #else
-        #define IS_LN_COLLISION()       txPin->read() != rxPin->read()
-        #endif
+#define IS_LN_COLLISION() (txPin->read() == rxPin->read())
 #endif
 
 
