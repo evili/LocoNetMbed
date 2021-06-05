@@ -58,6 +58,9 @@ volatile uint8_t  lnTxSuccess ;   // this boolean flag as a message from timer i
 DigitalOut *txPin;
 InterruptIn *rxPin;
 
+DigitalOut lblue(LED2);
+DigitalOut lred(LED3);
+
 Ticker lnTicker;
 
 void LN_TMR_SIGNAL();
@@ -81,6 +84,7 @@ inline void scheduleLnTicker(const std::chrono::microseconds period) {
  **************************************************************************/
 void LN_SB_SIGNAL()
 {
+  lblue = !lblue;
   // Disable the Input Comparator Interrupt
   // TODO: cbi( LN_SB_INT_ENABLE_REG, LN_SB_INT_ENABLE_BIT );     
   rxPin->disable_irq();
@@ -112,6 +116,7 @@ void LN_SB_SIGNAL()
  **************************************************************************/
 void LN_TMR_SIGNAL()    /* signal handler for timer0 overflow */
 {
+  lred = !lred;
   // Advance the Compare Target by a bit period
   // TODO: lnCompareTarget += LN_TIMER_RX_RELOAD_PERIOD;
   // TODO: LN_TMR_OUTP_CAPT_REG = lnCompareTarget;
@@ -250,6 +255,8 @@ void LN_TMR_SIGNAL()    /* signal handler for timer0 overflow */
 
 void initLocoNetHardware( LnBuf *RxBuffer, DigitalOut *tx, InterruptIn *rx )
 {
+  lred = 0;
+  lblue = 0;
   lnRxBuffer = RxBuffer ;
   txPin = tx;
   rxPin = rx;
