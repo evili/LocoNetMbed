@@ -24,7 +24,7 @@ available out there (see original LocoNet library).
 It will be much easier if your board has Arduino-UNO comptaible pinout
 (like the the STM32 Nucleo boards).
 
-You must configure in your program the LocoNet Tx and Rx pins (the defaults correspond to
+You must configure in your program the LocoNet Tx and Rx pins (defaults correspond to
 the original Arduino-UNO pinout).
 
 ## Changes in code
@@ -44,3 +44,9 @@ I have tried to make minimal changes on the upstream library. The most notable c
 
 * Move the code to a `Thread` safe paradigm using mbed facilities (Threads, Queues, Events, and friends).
 * Put it all on some higher abstracion layer.
+
+## Status
+
+* 2023-03-25:
+ ** Reding from LocoNetBus: OK.
+ ** Sending to LocoNetBus: FAILS (no detected by other hardware).

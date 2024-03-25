@@ -243,8 +243,8 @@ void LN_TMR_SIGNAL()    /* signal handler for timer0 overflow */
 
 void initLocoNetHardware( LnBuf *RxBuffer, DigitalOut *tx, InterruptIn *rx )
 {
-  lred = 0;
-  lblue = 0;
+  lred = 1;
+  lblue = 1;
   lnRxBuffer = RxBuffer ;
   txPin = tx;
   rxPin = rx;
@@ -252,8 +252,11 @@ void initLocoNetHardware( LnBuf *RxBuffer, DigitalOut *tx, InterruptIn *rx )
   // Set the RX line to Input
   // TODO: cbi( LN_RX_DDR, LN_RX_BIT ) ;
   // Set the TX line to Inactive
-  LN_SW_UART_SET_TX_HIGH();
+  printf("Set TX High...\n");
   rxPin->disable_irq();
+  LN_SW_UART_SET_TX_HIGH();
+
+  printf("Attaching interrupt to PIN\n");
   #ifdef LN_SW_UART_RX_INVERTED
   rxPin->rise(LN_SB_SIGNAL);
   #else
@@ -273,9 +276,9 @@ void initLocoNetHardware( LnBuf *RxBuffer, DigitalOut *tx, InterruptIn *rx )
   // prescaler.
   // TODO: TCCR1B |= (1<<ICNC1) ;    		// Enable Noise Canceler 
   lnState = LN_ST_IDLE ;
-
+  printf("Enable RX Interrupt...\n");
   rxPin->enable_irq();
-  
+  printf("SW UART Setup finished\n");
   //Clear StartBit Interrupt flag
   // TODO: sbi( LN_SB_INT_STATUS_REG, LN_SB_INT_STATUS_BIT );
   //Enable StartBit Interrupt
@@ -311,21 +314,21 @@ LN_STATUS sendLocoNetPacketTry(lnMsg *TxData, unsigned char ucPrioDelay)
   if (ucPrioDelay > LN_BACKOFF_MAX) {
     ucPrioDelay = LN_BACKOFF_MAX;
   }
+  printf("Disabling Interrupts...\n");
   // if priority delay was waited now, declare net as free for this try
   CriticalSectionLock::enable();  // disabling interrupt to avoid confusion by ISR changing lnState while we want to do it
   if (lnState == LN_ST_CD_BACKOFF) {
     if (lnBitCount >= ucPrioDelay) {	// Likely we don't want to wait as long as
       lnState = LN_ST_IDLE;			// the timer ISR waits its maximum delay.
-      
       // TODO: cbi( LN_TMR_INT_ENABLE_REG, LN_TMR_INT_ENABLE_BIT ) ;
       lnTicker.detach();
     }
   }
   CriticalSectionLock::disable();
+  printf("Interrutps ENABLED\n");
   // sei();
   // a delayed start bit interrupt will happen now,
   // a delayed timer interrupt was stalled
-
   // If the Network is not Idle, don't start the packet
   if (lnState == LN_ST_CD_BACKOFF) {
     if (lnBitCount < LN_CARRIER_TICKS) {  // in carrier detect timer?
@@ -337,25 +340,29 @@ LN_STATUS sendLocoNetPacketTry(lnMsg *TxData, unsigned char ucPrioDelay)
   }
 
   if( lnState != LN_ST_IDLE ) {
+    printf("Network BUSY. Returning...\n");
     return LN_NETWORK_BUSY;  // neither idle nor backoff -> busy
   }
   // We need to do this with interrupts off.
   // The last time we check for free net until sending our start bit
   // must be as short as possible, not interrupted.
   // TODO: cli() ;
+  printf("Network IDLE. Disabling Interrupts again...\n");
   CriticalSectionLock::enable();
   // Before we do anything else - Disable StartBit Interrupt
   // TODO: cbi( LN_SB_INT_ENABLE_REG, LN_SB_INT_ENABLE_BIT ) ;
   rxPin->disable_irq();
 
-  if (rxPin->read() == LN_RX_HIGH) {
+  if (rxPin->read() == LN_RX_LOW) {
     // if (bit_is_set(LN_SB_INT_STATUS_REG, LN_SB_INT_STATUS_BIT)) {
     // first we disabled it, than before sending the start bit, we found out
     // that somebody was faster by examining the start bit interrupt request flag
     // TODO: sbi( LN_SB_INT_ENABLE_REG, LN_SB_INT_ENABLE_BIT ) ;
     // TODO: sei() ;  // receive now what our rival is sending
+    lnTicker.detach();
     rxPin->enable_irq();
     CriticalSectionLock::disable();
+    printf("Network BUSY just before starting to send. Returning\n");
     return LN_NETWORK_BUSY;
   }
 
@@ -368,7 +375,7 @@ LN_STATUS sendLocoNetPacketTry(lnMsg *TxData, unsigned char ucPrioDelay)
 
   // TODO: sei() ;  // Interrupts back on ...
   CriticalSectionLock::disable();
-
+  printf("Preparing to send...\n");
   lnTxData = TxData ;
   lnTxIndex = 0 ;
   lnTxSuccess = 0 ;
@@ -385,11 +392,12 @@ LN_STATUS sendLocoNetPacketTry(lnMsg *TxData, unsigned char ucPrioDelay)
   // Clear the current Compare interrupt status bit and enable the Compare interrupt
   // TODO: sbi(LN_TMR_INT_STATUS_REG, LN_TMR_INT_STATUS_BIT) ;
   // TODO: sbi(LN_TMR_INT_ENABLE_REG, LN_TMR_INT_ENABLE_BIT) ;
+  printf("Timing time... See you.");
   scheduleLnTicker(LN_TIMER_TX_RELOAD_ADJUSTED);
-
   while (lnState == LN_ST_TX) {
     // now busy wait until the interrupts do the rest
   }
+  printf("Done sending\n");
   if (lnTxSuccess) {
     lnRxBuffer->Stats.TxPackets++ ;
     return LN_DONE;

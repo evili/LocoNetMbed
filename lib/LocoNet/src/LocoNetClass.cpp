@@ -117,7 +117,7 @@ LN_STATUS LocoNetClass::send(lnMsg *pPacket, uint8_t ucPrioDelay)
 
   for (ucTry = 0; ucTry < LN_TX_RETRIES_MAX; ucTry++)
   {
-
+    printf("Try sending for %d times\n", ucTry);
     // wait previous traffic and than prio delay and than try tx
     ucWaitForEnterBackoff = 1;  // don't want to abort do/while loop before
     do                          // we did not see the backoff state once
@@ -136,6 +136,7 @@ LN_STATUS LocoNetClass::send(lnMsg *pPacket, uint8_t ucPrioDelay)
     // failed -> next try going to higher prio = smaller prio delay
     if (ucPrioDelay > LN_BACKOFF_MIN)
       ucPrioDelay--;
+    printf("Prioryty Delay %d (min: %d)\n", ucPrioDelay, LN_BACKOFF_MIN);
   }
   LnBuffer.Stats.TxErrors++ ;
   return LN_RETRY_ERROR;
@@ -381,7 +382,7 @@ uint8_t LocoNetClass::processSwitchSensorMessage( lnMsg *LnPacket )
                 else
                   Locoaddr = (LnPacket->mstr.adr1 * 128) + LnPacket->mstr.adr2 ;
                   
-                if ( (LnPacket->mstr.zone&0x0F) == 0x00 ) Zone = 'A' ;
+               if ( (LnPacket->mstr.zone&0x0F) == 0x00 ) Zone = 'A' ;
           else if ( (LnPacket->mstr.zone&0x0F) == 0x02 ) Zone = 'B' ;
           else if ( (LnPacket->mstr.zone&0x0F) == 0x04 ) Zone = 'C' ;
           else if ( (LnPacket->mstr.zone&0x0F) == 0x06 ) Zone = 'D' ;
